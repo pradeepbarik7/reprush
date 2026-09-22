@@ -1,0 +1,6 @@
+{
+  "name": "Rep Rush",
+  "description": "1v1 real-time competitive fitness gaming platform. Turn every rep into a battle.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
