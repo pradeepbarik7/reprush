@@ -1,19 +1,21 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { Swords, Trophy, Flame, Shield, ArrowUpRight, CheckCircle2, XCircle } from 'lucide-react';
+import { Swords, Trophy, Flame, Shield, ArrowUpRight, CheckCircle2, XCircle, Wallet, Sparkles, ShieldAlert } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
 
 interface ProfileViewProps {
   profile: UserProfile;
   onStartBattle: () => void;
+  onEnterTournament?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   profile,
   onStartBattle,
+  onEnterTournament,
 }) => {
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-8 sm:py-12 select-none">
+    <div className="w-full max-w-5xl mx-auto px-4 py-8 sm:py-12 select-none animate-fade-in">
       {/* Profile Header Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-sm mb-6 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
         <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
@@ -39,7 +41,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               1v1 Push-Up Competitor • Member since 2026
             </p>
 
-            <div className="flex items-center justify-center sm:justify-start gap-3 mt-3">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 mt-3">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gray-50 border border-gray-200/80">
                 <Shield className="w-3.5 h-3.5 text-amber-600" />
                 <span className="text-xs font-bold text-gray-700">Division:</span>
@@ -48,8 +50,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-50 border border-red-100">
                 <Trophy className="w-3.5 h-3.5 text-red-600" />
-                <span className="text-xs font-bold text-red-700">Competitive Rating:</span>
+                <span className="text-xs font-bold text-red-700">Rating:</span>
                 <span className="text-xs font-mono font-extrabold text-red-600">{profile.rating}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-100">
+                <Flame className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-bold text-amber-700">No Mercy:</span>
+                <span className="text-xs font-mono font-extrabold text-amber-700">
+                  {profile.noMercyTitles || 1} Title
+                </span>
               </div>
             </div>
           </div>
@@ -62,11 +72,65 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             playClickSound();
             onStartBattle();
           }}
-          className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-gray-950 text-white font-extrabold text-sm shadow-md hover:bg-gray-800 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 group"
+          className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-gray-950 text-white font-extrabold text-sm shadow-md hover:bg-gray-800 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 group shrink-0"
         >
           <Swords className="w-4 h-4 text-red-400 group-hover:rotate-12 transition-transform" />
           <span>Queue For Battle</span>
         </button>
+      </div>
+
+      {/* DEMO COMPETITION STATS (Requested in requirement 14) */}
+      <div className="bg-[#0F172A] rounded-3xl p-6 sm:p-7 border border-gray-800 text-white shadow-xl mb-6 relative overflow-hidden">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <h2 className="text-sm sm:text-base font-extrabold uppercase font-mono tracking-wider text-white">
+              DEMO COMPETITION STATS
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+            SIMULATION ONLY
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center font-mono">
+          <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl">
+            <span className="text-[11px] text-gray-400 block mb-1">Battle Rating</span>
+            <span className="text-2xl font-extrabold text-white">{profile.rating}</span>
+          </div>
+
+          <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl">
+            <span className="text-[11px] text-gray-400 block mb-1">Wins</span>
+            <span className="text-2xl font-extrabold text-emerald-400">{profile.wins}</span>
+          </div>
+
+          <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl">
+            <span className="text-[11px] text-gray-400 block mb-1">Losses</span>
+            <span className="text-2xl font-extrabold text-gray-400">{profile.losses}</span>
+          </div>
+
+          <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl">
+            <span className="text-[11px] text-gray-400 block mb-1">Total Reps</span>
+            <span className="text-2xl font-extrabold text-red-400">{profile.totalReps.toLocaleString()}</span>
+          </div>
+
+          <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl">
+            <span className="text-[11px] text-gray-400 block mb-1">Demo Battles</span>
+            <span className="text-2xl font-extrabold text-amber-400">{profile.demoBattles || 18}</span>
+          </div>
+
+          <div className="bg-gray-900/80 border border-gray-800 p-3.5 rounded-2xl">
+            <span className="text-[11px] text-emerald-400 block mb-1 font-bold">Demo Winnings</span>
+            <span className="text-2xl font-extrabold text-emerald-300">₹{profile.demoWinnings || 125}</span>
+          </div>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-gray-800/80 flex items-center gap-2 text-[10px] text-gray-400">
+          <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>
+            No real-world financial claim is implied. All demo winnings are virtual test credits with zero monetary conversion.
+          </span>
+        </div>
       </div>
 
       {/* Stats Overview Grid */}

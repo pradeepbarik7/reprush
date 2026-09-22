@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LeaderboardUser } from '../types';
 import { INITIAL_LEADERBOARD } from '../data/mockData';
-import { Trophy, Flame, Swords, Shield, Users, Calendar, Globe } from 'lucide-react';
+import { Trophy, Flame, Swords, Shield, Users, Calendar, Globe, Medal, Dumbbell, ShieldCheck } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
 
 interface LeaderboardViewProps {
@@ -9,18 +9,30 @@ interface LeaderboardViewProps {
   currentUserRating: number;
 }
 
+type TabType = 'global' | 'friends' | 'weekly' | 'no_mercy';
+type SortField = 'rating' | 'wins' | 'reps' | 'titles';
+
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   onChallengePlayer,
   currentUserRating,
 }) => {
-  const [activeTab, setActiveTab] = useState<'global' | 'friends' | 'weekly'>('global');
+  const [activeTab, setActiveTab] = useState<TabType>('global');
+  const [sortBy, setSortBy] = useState<SortField>('rating');
 
-  // Dynamically update the current user's rating in the list
-  const currentList = INITIAL_LEADERBOARD[activeTab].map((u) => {
+  // Dynamically update the current user's rating in the list and sort accordingly
+  const rawList = (INITIAL_LEADERBOARD[activeTab] || INITIAL_LEADERBOARD.global).map((u) => {
     if (u.isCurrentUser) {
       return { ...u, rating: currentUserRating };
     }
     return u;
+  });
+
+  const sortedList = [...rawList].sort((a, b) => {
+    if (sortBy === 'rating') return b.rating - a.rating;
+    if (sortBy === 'wins') return b.wins - a.wins;
+    if (sortBy === 'reps') return (b.reps || 0) - (a.reps || 0);
+    if (sortBy === 'titles') return (b.noMercyTitles || 0) - (a.noMercyTitles || 0);
+    return 0;
   });
 
   const getRankBadge = (rank: number) => {
@@ -53,38 +65,38 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-8 sm:py-12 select-none">
+    <div className="w-full max-w-5xl mx-auto px-4 py-8 sm:py-12 select-none animate-fade-in">
       {/* Title & Description */}
       <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">
           <Trophy className="w-3.5 h-3.5 text-blue-600" />
           Competitive Push-Up Rankings
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-950 tracking-tight">
-          Global Leaderboard
+          RepRush Leaderboards
         </h1>
         <p className="text-sm text-gray-500 font-medium">
-          Compete against players worldwide and climb from Gold to Diamond tier.
+          Standings are strictly determined by movement performance: Rating, Wins, Total Reps, and No Mercy Tournament Titles.
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex justify-center mb-8">
-        <div className="bg-gray-100 p-1.5 rounded-2xl flex items-center gap-1 border border-gray-200/80">
+      {/* Tabs Filter Bar (GLOBAL, FRIENDS, WEEKLY, NO MERCY) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+        <div className="bg-gray-100 p-1.5 rounded-2xl flex flex-wrap items-center gap-1 border border-gray-200/80">
           <button
             id="tab-global"
             onClick={() => {
               playClickSound();
               setActiveTab('global');
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
               activeTab === 'global'
                 ? 'bg-white text-gray-950 shadow-xs'
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             <Globe className="w-4 h-4" />
-            <span>Global</span>
+            <span>GLOBAL</span>
           </button>
 
           <button
@@ -93,14 +105,14 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               playClickSound();
               setActiveTab('friends');
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
               activeTab === 'friends'
                 ? 'bg-white text-gray-950 shadow-xs'
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Friends</span>
+            <span>FRIENDS</span>
           </button>
 
           <button
@@ -109,43 +121,83 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               playClickSound();
               setActiveTab('weekly');
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
               activeTab === 'weekly'
                 ? 'bg-white text-gray-950 shadow-xs'
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Weekly</span>
+            <span>WEEKLY</span>
           </button>
+
+          <button
+            id="tab-no-mercy"
+            onClick={() => {
+              playClickSound();
+              setActiveTab('no_mercy');
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+              activeTab === 'no_mercy'
+                ? 'bg-gray-950 text-amber-400 shadow-xs'
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Flame className="w-4 h-4 text-amber-500" />
+            <span>NO MERCY</span>
+          </button>
+        </div>
+
+        {/* Metric Sorting Pill */}
+        <div className="flex items-center gap-1.5 text-xs font-mono font-bold bg-white p-1 rounded-xl border border-gray-200">
+          <span className="text-gray-400 px-2 uppercase text-[10px]">Rank By:</span>
+          {(['rating', 'wins', 'reps', 'titles'] as SortField[]).map((field) => (
+            <button
+              key={field}
+              onClick={() => {
+                playClickSound();
+                setSortBy(field);
+              }}
+              className={`px-2.5 py-1 rounded-lg uppercase tracking-wider text-[11px] transition-all cursor-pointer ${
+                sortBy === field
+                  ? 'bg-gray-900 text-white shadow-2xs'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              {field === 'titles' ? 'TITLES' : field}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Leaderboard Table Card */}
-      <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-gray-200/90 shadow-sm overflow-hidden mb-4">
         {/* Table Header */}
-        <div className="hidden sm:grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50/80 border-b border-gray-200/70 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <div className="hidden sm:grid grid-cols-12 gap-3 px-6 py-4 bg-gray-50/80 border-b border-gray-200/70 text-xs font-mono font-bold uppercase tracking-wider text-gray-500">
           <div className="col-span-1 text-center">Rank</div>
-          <div className="col-span-5">Competitor</div>
+          <div className="col-span-4">Competitor</div>
           <div className="col-span-2 text-center">Division</div>
+          <div className="col-span-1 text-center">Wins</div>
+          <div className="col-span-1 text-center">Reps</div>
+          <div className="col-span-1 text-center">Titles</div>
           <div className="col-span-2 text-right">Rating</div>
-          <div className="col-span-2 text-right">Action</div>
         </div>
 
         {/* Rows */}
         <div className="divide-y divide-gray-100">
-          {currentList.map((user) => {
+          {sortedList.map((user, idx) => {
             const isUser = user.isCurrentUser;
+            const rank = idx + 1;
             return (
               <div
                 key={user.username}
-                className={`grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-6 py-4 items-center transition-colors ${
+                className={`grid grid-cols-1 sm:grid-cols-12 gap-3 px-4 sm:px-6 py-3.5 items-center transition-colors ${
                   isUser ? 'bg-red-50/40 hover:bg-red-50/60' : 'hover:bg-gray-50/80'
                 }`}
               >
                 {/* Rank & User Info */}
-                <div className="flex sm:col-span-6 items-center gap-3">
-                  <div className="shrink-0">{getRankBadge(user.rank)}</div>
+                <div className="flex sm:col-span-5 items-center gap-3">
+                  <div className="shrink-0">{getRankBadge(rank)}</div>
 
                   <div className="w-10 h-10 rounded-xl bg-gray-900 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
                     {user.name.slice(0, 2).toUpperCase()}
@@ -163,7 +215,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                       )}
                     </div>
                     <div className="text-xs text-gray-400 font-medium">
-                      {user.username} • {user.wins}W - {user.losses}L
+                      {user.username}
                     </div>
                   </div>
                 </div>
@@ -171,7 +223,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 {/* Division Badge */}
                 <div className="hidden sm:flex sm:col-span-2 justify-center">
                   <span
-                    className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                    className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-lg border ${
                       user.division === 'Diamond'
                         ? 'bg-blue-50 text-blue-700 border-blue-200'
                         : user.division === 'Platinum'
@@ -184,9 +236,24 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                   </span>
                 </div>
 
-                {/* Rating */}
-                <div className="flex sm:col-span-2 justify-between sm:justify-end items-center">
-                  <span className="sm:hidden text-xs text-gray-400 font-semibold">Rating:</span>
+                {/* Wins */}
+                <div className="hidden sm:block sm:col-span-1 text-center font-mono text-xs font-bold text-gray-700">
+                  {user.wins}
+                </div>
+
+                {/* Total Reps */}
+                <div className="hidden sm:block sm:col-span-1 text-center font-mono text-xs font-bold text-red-600">
+                  {user.reps?.toLocaleString() || 1400}
+                </div>
+
+                {/* No Mercy Titles */}
+                <div className="hidden sm:flex sm:col-span-1 justify-center items-center gap-1 font-mono text-xs font-extrabold text-amber-700">
+                  <Trophy className="w-3 h-3 text-amber-500" />
+                  <span>{user.noMercyTitles || 0}</span>
+                </div>
+
+                {/* Rating & Action */}
+                <div className="flex sm:col-span-2 justify-between sm:justify-end items-center gap-3">
                   <div className="text-right">
                     <span className="font-mono text-base font-extrabold text-gray-950">
                       {user.rating}
@@ -196,10 +263,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                       {user.streak} streak
                     </div>
                   </div>
-                </div>
 
-                {/* Action: Challenge */}
-                <div className="flex sm:col-span-2 justify-end">
                   {!isUser ? (
                     <button
                       id={`challenge-user-${user.username.replace('@', '')}`}
@@ -207,14 +271,15 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                         playClickSound();
                         onChallengePlayer(user);
                       }}
-                      className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 active:scale-95 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      className="px-2.5 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 active:scale-95 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1"
+                      title="Challenge player"
                     >
-                      <Swords className="w-3.5 h-3.5 text-red-400" />
-                      <span>Challenge</span>
+                      <Swords className="w-3 h-3 text-red-400" />
+                      <span className="hidden md:inline">Fight</span>
                     </button>
                   ) : (
-                    <span className="text-xs font-bold text-gray-400 px-3 py-1.5">
-                      Current Rank
+                    <span className="text-[11px] font-mono font-bold text-gray-400 px-2">
+                      Active
                     </span>
                   )}
                 </div>
@@ -222,6 +287,14 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Non-monetary disclaimer note */}
+      <div className="flex items-center justify-center gap-2 text-xs text-gray-400 font-medium text-center">
+        <ShieldCheck className="w-4 h-4 text-gray-400" />
+        <span>
+          Leaderboards are based purely on athletic merit and movement verification. No monetary rank is supported.
+        </span>
       </div>
     </div>
   );

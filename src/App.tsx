@@ -3,8 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { ScreenType, Player, BattleResultData, UserProfile, LeaderboardUser } from './types';
+import React, { useState, useEffect } from 'react';
+import { 
+  ScreenType, 
+  Player, 
+  BattleResultData, 
+  UserProfile, 
+  LeaderboardUser, 
+  LegalDocType 
+} from './types';
 import { INITIAL_USER, INITIAL_OPPONENT, INITIAL_PROFILE } from './data/mockData';
 import { Navbar } from './components/Navbar';
 import { LandingView } from './components/LandingView';
@@ -14,6 +21,23 @@ import { LiveBattleView } from './components/LiveBattleView';
 import { ResultView } from './components/ResultView';
 import { ProfileView } from './components/ProfileView';
 import { LeaderboardView } from './components/LeaderboardView';
+import { WalletView } from './components/WalletView';
+import { NoMercyTournamentView } from './components/NoMercyTournamentView';
+import { StakeSelectorModal } from './components/StakeSelectorModal';
+import { LegalPagesModal } from './components/LegalPagesModal';
+import { Footer } from './components/Footer';
+import { StakeRule, DEFAULT_STAKE, getBattlePrizeCalculation } from './config/stakesConfig';
+import { 
+  getDemoBalance, 
+  addDemoCredits, 
+  refundDemoEntry,
+  deductDemoEntry 
+} from './services/demoWalletService';
+import { 
+  getSavedTournamentBracket, 
+  saveBracket, 
+  simulateOtherMatches 
+} from './services/tournamentService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('home');
@@ -22,13 +46,42 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile>(INITIAL_PROFILE);
   const [lastBattleResult, setLastBattleResult] = useState<BattleResultData | null>(null);
 
-  // Start matchmaking flow
+  // Simulated stakes state
+  const [isStakeModalOpen, setIsStakeModalOpen] = useState(false);
+  const [currentStakeRule, setCurrentStakeRule] = useState<StakeRule>(DEFAULT_STAKE);
+  const [pendingCustomOpponent, setPendingCustomOpponent] = useState<Player | null>(null);
+
+  // Tournament context
+  const [isTournamentMatch, setIsTournamentMatch] = useState(false);
+  const [tournamentRoundName, setTournamentRoundName] = useState<'Quarterfinal' | 'Semifinal' | 'Final' | null>(null);
+
+  // Legal modal state
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [activeLegalDoc, setActiveLegalDoc] = useState<LegalDocType>('terms');
+
+  // Trigger 1v1 battle flow with stake selector
   const handleStartBattle = (customOpponent?: Player) => {
+    setIsTournamentMatch(false);
+    setTournamentRoundName(null);
     if (customOpponent) {
-      setCurrentOpponent(customOpponent);
+      setPendingCustomOpponent(customOpponent);
+    } else {
+      setPendingCustomOpponent(null);
+    }
+    setIsStakeModalOpen(true);
+  };
+
+  // Called when user selects & confirms demo stake in StakeSelectorModal
+  const handleConfirmStake = (stakeRule: StakeRule) => {
+    setCurrentStakeRule(stakeRule);
+    setIsStakeModalOpen(false);
+
+    if (pendingCustomOpponent) {
+      setCurrentOpponent(pendingCustomOpponent);
     } else {
       setCurrentOpponent(INITIAL_OPPONENT);
     }
+
     setCurrentScreen('matchmaking');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -46,23 +99,117 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Start a tournament match round
+  const handleStartTournamentMatch = (
+    opponent: Player, 
+    roundName: 'Quarterfinal' | 'Semifinal' | 'Final'
+  ) => {
+    setIsTournamentMatch(true);
+    setTournamentRoundName(roundName);
+    setCurrentOpponent(opponent);
+    setCurrentScreen('pre-match');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Live Battle Ended
   const handleBattleEnd = (userReps: number, opponentReps: number, maxCombo: number) => {
-    const isWinner = userReps >= opponentReps;
-    const ratingDelta = isWinner ? +18 : -14;
+    const isWinner = userReps > opponentReps;
+    const isDraw = userReps === opponentReps;
+    const winnerType = isWinner ? 'user' : isDraw ? 'draw' : 'opponent';
+
+    const ratingDelta = isWinner ? +18 : isDraw ? 0 : -14;
     const prevRating = currentUser.rating;
     const newRating = Math.max(1000, prevRating + ratingDelta);
+
+    const stakeAmount = isTournamentMatch ? 10 : currentStakeRule.entry;
+    const calculation = getBattlePrizeCalculation(stakeAmount);
+    const prevBalance = getDemoBalance();
+    let winnerReward = 0;
+    let netResult = -stakeAmount;
+    let newBalance = prevBalance;
+
+    if (!isTournamentMatch) {
+      if (isWinner) {
+        winnerReward = calculation.winnerReward;
+        netResult = winnerReward - stakeAmount;
+        newBalance = addDemoCredits(
+          winnerReward, 
+          `1v1 Battle Victory (${currentStakeRule.label} Demo)`, 
+          'battle_reward'
+        );
+      } else if (isDraw) {
+        winnerReward = stakeAmount;
+        netResult = 0;
+        newBalance = refundDemoEntry(
+          stakeAmount, 
+          `1v1 Battle Tie Refund (${currentStakeRule.label} Demo)`
+        );
+      } else {
+        winnerReward = 0;
+        netResult = -stakeAmount;
+        newBalance = prevBalance;
+      }
+    } else {
+      // Tournament match resolution
+      const bracket = getSavedTournamentBracket();
+      if (bracket && tournamentRoundName) {
+        const roundIndex = tournamentRoundName === 'Quarterfinal' ? 0 : tournamentRoundName === 'Semifinal' ? 1 : 2;
+        const currentRound = bracket.rounds[roundIndex];
+        const userMatch = currentRound?.matches.find((m) => m.isUserMatch);
+
+        if (userMatch) {
+          userMatch.p1Score = userReps;
+          userMatch.p2Score = opponentReps;
+          userMatch.status = 'completed';
+          userMatch.winnerId = isWinner ? userMatch.player1.id : userMatch.player2.id;
+
+          if (isWinner) {
+            if (tournamentRoundName === 'Final') {
+              bracket.status = 'champion';
+              bracket.userChampion = true;
+              winnerReward = 50; // ₹50 No Mercy champion reward
+              netResult = +40;
+              newBalance = addDemoCredits(50, 'No Mercy Tournament Champion (Demo)', 'tournament_reward');
+            } else {
+              // Advance to next round index
+              bracket.currentRoundIndex = roundIndex + 1;
+              const nextRound = bracket.rounds[roundIndex + 1];
+              if (nextRound) {
+                const nextUserMatch = nextRound.matches.find((m) => m.isUserMatch);
+                if (nextUserMatch) {
+                  nextUserMatch.player1 = currentUser;
+                }
+              }
+            }
+          } else {
+            bracket.status = 'eliminated';
+            bracket.userEliminated = true;
+            winnerReward = 0;
+            netResult = -10;
+          }
+          saveBracket(bracket);
+        }
+      }
+    }
 
     const resultData: BattleResultData = {
       userReps,
       opponentReps,
-      winner: isWinner ? 'user' : 'opponent',
+      winner: winnerType,
       ratingDelta,
       newRating,
       previousRating: prevRating,
       isPersonalBest: userReps >= 57,
       maxCombo,
       opponent: currentOpponent,
+      stakeAmount,
+      winnerReward,
+      platformFee: calculation.platformFee,
+      netResult,
+      prevBalance,
+      newBalance,
+      isTournamentMatch,
+      tournamentRound: tournamentRoundName || undefined,
     };
 
     setLastBattleResult(resultData);
@@ -76,9 +223,10 @@ export default function App() {
     // Update profile stats
     setUserProfile((prev) => {
       const newWins = isWinner ? prev.wins + 1 : prev.wins;
-      const newLosses = !isWinner ? prev.losses + 1 : prev.losses;
+      const newLosses = !isWinner && !isDraw ? prev.losses + 1 : prev.losses;
       const newTotal = newWins + newLosses;
-      const newWinRate = Number(((newWins / newTotal) * 100).toFixed(1));
+      const newWinRate = Number(((newWins / Math.max(1, newTotal)) * 100).toFixed(1));
+      const addedWinnings = isWinner ? Math.round(winnerReward) : 0;
 
       return {
         ...prev,
@@ -88,6 +236,9 @@ export default function App() {
         losses: newLosses,
         winRate: newWinRate,
         totalReps: prev.totalReps + userReps,
+        demoBattles: (prev.demoBattles || 18) + 1,
+        demoWinnings: (prev.demoWinnings || 125) + addedWinnings,
+        noMercyTitles: (prev.noMercyTitles || 1) + (isTournamentMatch && isWinner && tournamentRoundName === 'Final' ? 1 : 0),
         recentBattles: [
           {
             id: `b-${Date.now()}`,
@@ -95,9 +246,11 @@ export default function App() {
             opponentUsername: currentOpponent.username,
             userScore: userReps,
             opponentScore: opponentReps,
-            result: isWinner ? 'win' : 'loss',
+            result: isWinner ? 'win' : isDraw ? 'draw' : 'loss',
             date: 'Just now',
             ratingDelta,
+            stake: stakeAmount,
+            reward: winnerReward,
           },
           ...prev.recentBattles.slice(0, 3),
         ],
@@ -110,6 +263,16 @@ export default function App() {
 
   // Rematch action
   const handleRematch = () => {
+    // Deduct stake again for rematch
+    const res = deductDemoEntry(
+      currentStakeRule.entry,
+      `1v1 Battle Rematch (${currentStakeRule.label} Demo)`,
+      'battle_entry'
+    );
+    if (!res.success) {
+      setIsStakeModalOpen(true);
+      return;
+    }
     setCurrentScreen('pre-match');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -126,6 +289,11 @@ export default function App() {
       color: 'blue',
     };
     handleStartBattle(opp);
+  };
+
+  const handleOpenLegal = (doc: LegalDocType) => {
+    setActiveLegalDoc(doc);
+    setIsLegalModalOpen(true);
   };
 
   return (
@@ -146,6 +314,10 @@ export default function App() {
         {currentScreen === 'home' && (
           <LandingView
             onStartBattle={() => handleStartBattle()}
+            onEnterTournament={() => {
+              setCurrentScreen('no-mercy');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             onExploreLeaderboard={() => {
               setCurrentScreen('leaderboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -193,6 +365,10 @@ export default function App() {
           <ProfileView
             profile={userProfile}
             onStartBattle={() => handleStartBattle()}
+            onEnterTournament={() => {
+              setCurrentScreen('no-mercy');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         )}
 
@@ -202,24 +378,50 @@ export default function App() {
             onChallengePlayer={handleChallengePlayer}
           />
         )}
+
+        {currentScreen === 'wallet' && (
+          <WalletView
+            onStartBattle={() => handleStartBattle()}
+            onEnterTournament={() => {
+              setCurrentScreen('no-mercy');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        )}
+
+        {currentScreen === 'no-mercy' && (
+          <NoMercyTournamentView
+            currentUser={currentUser}
+            onStartTournamentMatch={handleStartTournamentMatch}
+            onNavigateHome={() => {
+              setCurrentScreen('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onNavigateProfile={() => {
+              setCurrentScreen('profile');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        )}
       </main>
 
-      {/* Subtle Apple-style clean footer */}
-      <footer className="w-full py-8 border-t border-gray-200/80 bg-white/70 backdrop-blur-sm text-center text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-gray-950">Rep Rush</span>
-            <span className="text-gray-400">•</span>
-            <span className="font-medium text-gray-600">Fitness. Competition. Glory.</span>
-          </div>
+      {/* Stake Selection Modal for 1v1 Battle Entry */}
+      <StakeSelectorModal
+        isOpen={isStakeModalOpen}
+        onClose={() => setIsStakeModalOpen(false)}
+        onConfirmEntry={handleConfirmStake}
+      />
 
-          <div className="flex items-center gap-4 text-gray-400">
-            <span>Turn every rep into a battle</span>
-            <span>•</span>
-            <span className="text-gray-500 font-semibold">1v1 Push-Up Arena</span>
-          </div>
-        </div>
-      </footer>
+      {/* Legal & Compliance Modal */}
+      <LegalPagesModal
+        isOpen={isLegalModalOpen}
+        docType={activeLegalDoc}
+        onClose={() => setIsLegalModalOpen(false)}
+        onSelectDoc={(doc) => setActiveLegalDoc(doc)}
+      />
+
+      {/* Universal Footer with Brand and Compliance Attribution */}
+      <Footer onOpenLegal={handleOpenLegal} />
     </div>
   );
 }

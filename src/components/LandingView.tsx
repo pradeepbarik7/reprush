@@ -1,14 +1,17 @@
 import React from 'react';
-import { Swords, Zap, Eye, Trophy, ArrowRight, ShieldCheck, Play } from 'lucide-react';
+import { Swords, Zap, Eye, Trophy, ArrowRight, Play, Flame, Users, Sparkles } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
+import { RepRushLogo } from './RepRushLogo';
 
 interface LandingViewProps {
   onStartBattle: () => void;
+  onEnterTournament: () => void;
   onExploreLeaderboard: () => void;
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({
   onStartBattle,
+  onEnterTournament,
   onExploreLeaderboard,
 }) => {
   const scrollToHowItWorks = () => {
@@ -20,16 +23,21 @@ export const LandingView: React.FC<LandingViewProps> = ({
   };
 
   return (
-    <div className="w-full pb-20">
+    <div className="w-full pb-20 select-none">
       {/* Hero Section */}
-      <section className="relative pt-16 sm:pt-24 pb-14 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto space-y-6">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50/80 border border-red-200/60 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-red-700">
-              1v1 Fitness Battles
-            </span>
+      <section className="relative pt-12 sm:pt-20 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto space-y-5">
+          {/* Brand Icon Emblem */}
+          <div className="flex flex-col items-center gap-3.5">
+            <div className="relative group">
+              <RepRushLogo className="w-20 h-20 sm:w-24 sm:h-24 drop-shadow-md hover:scale-105 transition-transform duration-300" />
+            </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50/80 border border-red-200/60 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider text-red-700">
+                1v1 Fitness Battles
+              </span>
+            </div>
           </div>
 
           {/* Large Headline */}
@@ -43,7 +51,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </p>
 
           {/* CTAs */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button
               id="hero-start-battle-btn"
               onClick={() => {
@@ -69,8 +77,109 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </div>
       </section>
 
+      {/* TWO MAJOR GAME CARDS (1V1 BATTLE & NO MERCY TOURNAMENT) */}
+      <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* CARD 1: 1V1 BATTLE */}
+          <div className="bg-white rounded-3xl p-7 sm:p-8 border border-gray-200/90 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-44 h-44 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-red-500/10 transition-colors" />
+            
+            <div className="flex items-center justify-between mb-4">
+              <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200/60 text-red-700 text-xs font-mono font-bold uppercase tracking-wider">
+                Ranked Head-to-Head
+              </span>
+              <span className="text-xs font-mono font-bold text-gray-400">
+                ₹1 – ₹10 Demo Stakes
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-xs">
+                <Swords className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-extrabold text-gray-950 tracking-tight">
+                  1V1 BATTLE
+                </h3>
+                <p className="text-sm text-gray-600 font-medium">
+                  Challenge one opponent.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-gray-600 text-xs sm:text-sm leading-relaxed my-5">
+              Live synchronous 2-minute push-up duel with real-time pose camera tracking. Every valid rep expands your territory bar.
+            </p>
+
+            <button
+              id="card-play-1v1-btn"
+              onClick={() => {
+                playClickSound();
+                onStartBattle();
+              }}
+              className="w-full py-3.5 px-6 rounded-2xl bg-gray-950 hover:bg-gray-800 text-white font-extrabold text-sm tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+            >
+              <span>PLAY</span>
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
+          {/* CARD 2: NO MERCY */}
+          <div className="bg-[#0F172A] rounded-3xl p-7 sm:p-8 border border-gray-800 text-white shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-44 h-44 bg-amber-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/15 transition-colors" />
+
+            <div className="flex items-center justify-between mb-4">
+              <span className="px-3 py-1 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                Tournament
+              </span>
+              <span className="text-xs font-mono font-bold text-amber-400">
+                ₹70 Demo Pool
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500 text-gray-950 flex items-center justify-center shadow-xs">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-extrabold text-white tracking-tight">
+                  NO MERCY
+                </h3>
+                <p className="text-sm text-amber-300 font-medium">
+                  Survive the bracket.
+                </p>
+              </div>
+            </div>
+
+            <div className="my-5 flex items-center gap-4 text-xs font-mono text-gray-300">
+              <span className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-gray-400" />
+                8 players
+              </span>
+              <span className="text-gray-500">•</span>
+              <span>Single elimination</span>
+              <span className="text-gray-500">•</span>
+              <span className="text-emerald-400 font-bold">₹50 Winner</span>
+            </div>
+
+            <button
+              id="card-enter-tournament-btn"
+              onClick={() => {
+                playClickSound();
+                onEnterTournament();
+              }}
+              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-extrabold text-sm tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 shadow-md"
+            >
+              <span>ENTER TOURNAMENT</span>
+              <ArrowRight className="w-4 h-4 text-red-200 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Feature Cards Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: REAL-TIME */}
           <div className="bg-white rounded-3xl p-8 border border-gray-200/80 shadow-xs hover:shadow-md transition-shadow">
@@ -94,7 +203,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               AI VERIFIED
             </h3>
             <p className="text-gray-600 text-sm leading-relaxed">
-              Your reps are designed to be counted through movement detection. Chest-to-floor depth and full elbow lockouts ensure only legitimate reps score.
+              Your reps are counted through local movement detection. Chest depth and full elbow lockouts ensure only legitimate reps score.
             </p>
           </div>
 
@@ -116,16 +225,16 @@ export const LandingView: React.FC<LandingViewProps> = ({
       {/* How Rep Rush Works Section */}
       <section
         id="how-it-works-section"
-        className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
+        className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
       >
-        <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+        <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500 font-mono">
             SIMPLE. COMPETITIVE. ADDICTIVE.
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-950">
             How Rep Rush Works
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Three simple steps to test your endurance against athletes worldwide.
           </p>
         </div>
@@ -140,7 +249,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               Find an opponent
             </h4>
             <p className="text-gray-600 text-sm leading-relaxed">
-              Queue into instant matchmaking. Get matched with an evenly ranked competitor in your division in under 2 seconds.
+              Choose your demo stake (₹1 - ₹10) and queue into matchmaking. Get paired with an evenly matched competitor in seconds.
             </p>
           </div>
 
@@ -153,7 +262,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               Start moving
             </h4>
             <p className="text-gray-600 text-sm leading-relaxed">
-              Set up your camera and drop down. When the 3-2-1 countdown strikes GO, complete strict push-ups at maximum speed.
+              Set up your camera sideways and drop down. When the countdown strikes GO, complete strict push-ups with full elbow extension.
             </p>
           </div>
 
@@ -166,16 +275,15 @@ export const LandingView: React.FC<LandingViewProps> = ({
               Capture the bar
             </h4>
             <p className="text-gray-600 text-sm leading-relaxed">
-              Every rep physically steals territory from your opponent. Out-rep them before the 30-second timer expires to claim the victory.
+              Every rep steals territory from your opponent. Out-rep them to win simulated demo rewards and climb the global ladder.
             </p>
           </div>
         </div>
       </section>
 
       {/* Ready to battle CTA Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <div className="bg-gradient-to-b from-gray-950 to-gray-900 rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl relative overflow-hidden">
-          {/* Subtle red & blue corner accents */}
           <div className="absolute top-0 left-0 w-48 h-48 bg-red-600/20 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute bottom-0 right-0 w-48 h-48 bg-blue-600/20 rounded-full blur-2xl pointer-events-none" />
 
@@ -184,9 +292,9 @@ export const LandingView: React.FC<LandingViewProps> = ({
               Ready to battle?
             </h3>
             <p className="text-gray-300 text-sm sm:text-base">
-              Test your stamina against Alex Morgan in the Gold Division push-up arena.
+              Test your stamina against real athletes in the RepRush push-up arena.
             </p>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 id="cta-start-first-battle"
                 onClick={() => {
@@ -196,7 +304,18 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-gray-950 font-extrabold text-base shadow-lg hover:bg-gray-100 transition-all duration-200 active:scale-95 cursor-pointer inline-flex items-center justify-center gap-3"
               >
                 <Swords className="w-5 h-5 text-red-600" />
-                <span>Start Your First Battle</span>
+                <span>1v1 Push-Up Battle</span>
+              </button>
+              <button
+                id="cta-enter-tournament-bottom"
+                onClick={() => {
+                  playClickSound();
+                  onEnterTournament();
+                }}
+                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gray-900 border border-amber-500/50 text-amber-300 font-extrabold text-base shadow-lg hover:bg-gray-800 transition-all duration-200 active:scale-95 cursor-pointer inline-flex items-center justify-center gap-2"
+              >
+                <Flame className="w-5 h-5 text-amber-400" />
+                <span>Enter No Mercy (₹10 Demo)</span>
               </button>
             </div>
           </div>
